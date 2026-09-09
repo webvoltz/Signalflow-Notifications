@@ -170,6 +170,11 @@ third-party packages ship `.d.ts` files that conflict with the TypeScript versio
 `typescript-eslint` supports. It only skips checking third-party type declarations - this
 project's own source is still fully type-checked.
 
+The same gates run in CI (`.github/workflows/ci.yml`), staged the same way the pre-commit hook is:
+secret scan and dependency audit first, then quality and commit-message lint, then tests, then the
+production build - so a bypassed or missing local hook (`--no-verify`, no Gitleaks installed) still
+gets caught before anything merges.
+
 ## Testing
 
 `npm test` runs the full suite with coverage thresholds enforced (see `vite.config.ts`):
