@@ -7,6 +7,7 @@ describe('ConfigErrorScreen', () => {
     render(<ConfigErrorScreen message="Invalid application configuration." />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Invalid application configuration.');
-    expect(screen.getByText(/\.env\.example/)).toBeInTheDocument();
+    expect(screen.getAllByText(/\.env\.example/).length).toBeGreaterThan(0);
+    expect(screen.getByText('cp .env.example .env && npm run dev')).toBeInTheDocument();
   });
 });
