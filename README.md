@@ -1,4 +1,3 @@
-
 # Notification System with Firebase and React
 
 This project is a simple notification system built with React and Firebase. It features real-time notifications and a UI for sending and viewing notifications.
@@ -6,6 +5,7 @@ This project is a simple notification system built with React and Firebase. It f
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
+
 - Node.js (LTS version)
 - npm (comes with Node.js)
 - Git
@@ -62,15 +62,15 @@ To use Firebase emulators for development:
 
 1. Install the Firebase CLI:
 
-    ```bash
-    npm install -g firebase-tools
-    ```
+   ```bash
+   npm install -g firebase-tools
+   ```
 
 2. Start the emulators:
 
-    ```bash
-    firebase emulators:start
-    ```
+   ```bash
+   firebase emulators:start
+   ```
 
 Refer to the Firebase documentation for detailed setup instructions.
 

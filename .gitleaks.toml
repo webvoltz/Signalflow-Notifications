@@ -1,0 +1,4 @@
+title = "SignalFlow Notifications secret scanning"
+
+[extend]
+useDefault = true
