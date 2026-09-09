@@ -41,7 +41,7 @@ export default defineConfig(
       jsxA11y.flatConfigs.recommended,
     ],
     languageOptions: {
-      globals: { ...globals.browser, ...globals.node },
+      globals: globals.browser,
     },
     settings: {
       react: {
