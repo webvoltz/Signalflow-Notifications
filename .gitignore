@@ -4,12 +4,16 @@
 /node_modules
 /.pnp
 .pnp.js
+.npm/
 
 # testing
 /coverage
 
 # production
 /dist
+
+# Vite dependency pre-bundling cache
+.vite/
 
 # misc
 .DS_Store

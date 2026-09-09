@@ -14,7 +14,7 @@ export default defineConfig({
       exclude: [
         'src/main.tsx',
         'src/vite-env.d.ts',
-        'src/config/**',
+        'src/config/firebase.ts',
         'src/**/*.test.{ts,tsx}',
         'src/setupTests.ts',
       ],
