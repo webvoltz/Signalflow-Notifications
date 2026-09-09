@@ -165,10 +165,11 @@ a11y plugins, Prettier, and exact pinned dependency versions. A Husky pre-commit
 secret scanning, `lint-staged`, the full `quality` check, and a production build before any commit
 is allowed through; `commit-msg` enforces Conventional Commits via commitlint.
 
-`skipLibCheck` is enabled (a deliberate deviation from the strict template) because some current
-third-party packages ship `.d.ts` files that conflict with the TypeScript version
-`typescript-eslint` supports. It only skips checking third-party type declarations - this
-project's own source is still fully type-checked.
+`skipLibCheck` is `false`, matching the standard exactly - every third-party `.d.ts` file is
+type-checked too, not just this project's own source. That only holds together with the exact
+`vite`/`vitest`/`@vitest/coverage-v8` versions pinned in `package.json`: newer vite/vitest pairs
+(e.g. vite 8.2.x with vitest 5.x) currently ship mismatched internal type declarations between the
+two packages, unrelated to this project's code, that only `skipLibCheck: true` can paper over.
 
 The same gates run in CI (`.github/workflows/ci.yml`), staged the same way the pre-commit hook is:
 secret scan and dependency audit first, then quality and commit-message lint, then tests, then the
