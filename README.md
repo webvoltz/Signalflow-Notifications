@@ -1,13 +1,13 @@
 <img src="https://webvoltz.com/wp-content/uploads/2025/07/webvoltz.svg" alt="WebVoltz" width="180" />
 
-# SignalFlow Notifications
+# 🔔 SignalFlow Notifications
 
 A small, emulator-first demo of realtime user notifications built on React, Vite, TypeScript, and
 Firestore. It exists to show the pattern end to end - a Firestore subscription driving React
 state, an optimistic read update with rollback, and loading/error handling - rather than to be a
 product in its own right.
 
-## Features
+## ✨ Features
 
 - **Realtime Firestore subscription** - the notification list is never fetched once; it's a live
   `onSnapshot` listener mapped straight into React state.
@@ -23,7 +23,7 @@ product in its own right.
   produces; nothing else is accepted.
 - **Strict TypeScript** - no `any` anywhere, full `strict` compiler family, zero-warning ESLint.
 
-## Tech stack
+## 🧰 Tech stack
 
 | Technology                                    | Role                                               |
 | --------------------------------------------- | -------------------------------------------------- |
@@ -35,7 +35,7 @@ product in its own right.
 | Vitest + Testing Library                      | Unit and component tests                           |
 | ESLint, Prettier, Husky, commitlint, Gitleaks | Code quality and security gates                    |
 
-## Architecture
+## 🏗️ Architecture
 
 ```mermaid
 flowchart LR
@@ -61,7 +61,7 @@ component ever imports `firebase/firestore` directly. Documents read off a snaps
 against a zod schema before they become application state, so a malformed or unexpected document
 shape is dropped instead of crashing the UI.
 
-## Project structure
+## 📁 Project structure
 
 ```text
 src/
@@ -74,7 +74,7 @@ firestore.rules   Security rules for the notifications collection
 firebase.json     Emulator ports and Firestore config
 ```
 
-## Data flow
+## 🔄 Data flow
 
 **Creating a notification:**
 
@@ -100,7 +100,7 @@ Firestore document change
 Marking a notification as read updates local state immediately (optimistic), then confirms with a
 Firestore write; a failed write rolls the local state back and surfaces the error.
 
-## Environment variables
+## 🔑 Environment variables
 
 | Variable                            | Purpose                                                        |
 | ----------------------------------- | -------------------------------------------------------------- |
@@ -120,7 +120,7 @@ None of these are secret in the sense of granting write access on their own - Fi
 control lives entirely in `firestore.rules`, not in the client config. Still, never commit a real
 `.env` file; `.gitignore` blocks every `.env*` variant except `.env.example`.
 
-## Firestore security rules
+## 🛡️ Firestore security rules
 
 `firestore.rules` scopes the `notifications` collection to exactly what this app does:
 
@@ -135,7 +135,7 @@ control lives entirely in `firestore.rules`, not in the client config. Still, ne
 Because the emulator loads this same file, running `npm run emulators` locally exercises the real
 rules, not a permissive stand-in.
 
-## Local development
+## 💻 Local development
 
 Requires Node 24.x and npm 11.x (see `.nvmrc` / `engines` in `package.json`).
 
@@ -144,7 +144,7 @@ npm ci
 cp .env.example .env
 ```
 
-### Run against the Firestore emulator (recommended)
+### 🖥️ Run against the Firestore emulator (recommended)
 
 The emulator needs the Firebase CLI and a JRE (the emulator runs on Java); install
 [Firebase CLI](https://firebase.google.com/docs/cli) globally if you don't already have it:
@@ -170,7 +170,7 @@ With `VITE_USE_FIRESTORE_EMULATOR=true` (the default in `.env.example`), the app
 local emulator instead of a real Firebase project - `VITE_FIREBASE_PROJECT_ID` can stay as the
 placeholder value in that mode.
 
-### Run against a real Firebase project
+### ☁️ Run against a real Firebase project
 
 1. Create a Firestore-enabled project in the
    [Firebase console](https://console.firebase.google.com/).
@@ -183,7 +183,7 @@ placeholder value in that mode.
    firebase deploy --only firestore:rules
    ```
 
-## Available commands
+## ⚙️ Available commands
 
 | Command                           | Purpose                                                      |
 | --------------------------------- | ------------------------------------------------------------ |
@@ -198,7 +198,7 @@ placeholder value in that mode.
 | `npm test`                        | Vitest with coverage.                                        |
 | `npm run security:audit`          | `npm audit --audit-level=high`.                              |
 
-## Testing
+## 🧪 Testing
 
 `npm test` runs the full suite with coverage thresholds enforced in `vite.config.ts`
 (currently 100% statements/functions/lines, 89.65% branches - above the 90/100/90/85 floor):
@@ -214,7 +214,7 @@ placeholder value in that mode.
 - Component tests (`App.test.tsx`, `NotificationList.test.tsx`, `NotificationButton.test.tsx`)
   covering rendering, sorting, and the click -> callback wiring for send and mark-as-read.
 
-## Code quality and security
+## 🔒 Code quality and security
 
 This repo follows the Webvoltz React engineering standards: strict TypeScript (no `any`, the full
 `strict` family of compiler flags), a flat ESLint config with type-aware rules plus React/hooks/
@@ -231,7 +231,7 @@ type-checked too, not just this project's own source. That only holds together w
 (e.g. vite 8.2.x with vitest 5.x) currently ship mismatched internal type declarations between the
 two packages, unrelated to this project's code, that only `skipLibCheck: true` can paper over.
 
-## Design decisions
+## 🧠 Design decisions
 
 - **Firestore over a REST API** - `onSnapshot` is the whole point of this demo: a live listener
   that pushes changes to every connected client, no polling.
@@ -248,7 +248,7 @@ two packages, unrelated to this project's code, that only `skipLibCheck: true` c
   `firebase/firestore`, which is what makes every other layer (the hook, the components) testable
   with plain mocks instead of a real Firestore connection.
 
-## Troubleshooting
+## 🐛 Troubleshooting
 
 - **Emulator won't connect** - confirm `VITE_USE_FIRESTORE_EMULATOR=true` in `.env` and that
   `npm run emulators` is actually running (check `127.0.0.1:4000` for the Emulator UI).
@@ -263,13 +263,13 @@ two packages, unrelated to this project's code, that only `skipLibCheck: true` c
   upgrade can reintroduce upstream `.d.ts` conflicts that `skipLibCheck: false` would otherwise
   catch.
 
-## Future improvements
+## 🚀 Future improvements
 
 - Firebase Authentication, scoping notifications per user instead of one shared collection.
 - Pagination/windowing once a notification list can grow unbounded.
 - Notification categories or filtering in the UI.
 - Push notifications (FCM) alongside the in-app realtime feed.
 
-## License
+## 📄 License
 
 MIT - see [LICENSE](LICENSE).
