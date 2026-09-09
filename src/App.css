@@ -87,7 +87,7 @@
 
 .unread-badge {
   border-radius: 999px;
-  background: #1a75ed;
+  background: #1663cf;
   color: #ffffff;
   padding: 6px 12px;
   font-size: 12.5px;
@@ -112,7 +112,7 @@
 .create-notification-button {
   border: none;
   border-radius: 10px;
-  background: #1a75ed;
+  background: #1663cf;
   color: #ffffff;
   padding: 12px 20px;
   font-size: 14.5px;
@@ -121,11 +121,11 @@
 }
 
 .create-notification-button:hover {
-  background: #1663cf;
+  background: #124f8f;
 }
 
 .create-notification-button:focus-visible {
-  outline: 2px solid #1a75ed;
+  outline: 2px solid #1663cf;
   outline-offset: 2px;
 }
 
@@ -248,8 +248,8 @@
 }
 
 .filter-chip.is-active {
-  border-color: #1a75ed;
-  background: #1a75ed;
+  border-color: #1663cf;
+  background: #1663cf;
   color: #ffffff;
 }
 
@@ -258,7 +258,7 @@
 }
 
 .filter-chip:focus-visible {
-  outline: 2px solid #1a75ed;
+  outline: 2px solid #1663cf;
   outline-offset: 2px;
 }
 
@@ -318,14 +318,14 @@
 }
 
 .notification-card.is-unread .notification-card-type {
-  color: #1a75ed;
+  color: #1663cf;
 }
 
 .notification-card-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #1a75ed;
+  background: #1663cf;
 }
 
 .notification-card-message {
@@ -367,10 +367,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #1a75ed;
+  border: 1px solid #1663cf;
   border-radius: 8px;
   background: #ffffff;
-  color: #1a75ed;
+  color: #1663cf;
   padding: 6px 12px;
   font-size: 12.5px;
   font-weight: 600;
@@ -388,7 +388,7 @@
 
 .notification-card-action:focus-visible,
 .filter-chip:focus-visible {
-  outline: 2px solid #1a75ed;
+  outline: 2px solid #1663cf;
   outline-offset: 2px;
 }
 
@@ -396,7 +396,7 @@
   width: 12px;
   height: 12px;
   border: 2px solid rgba(26, 117, 237, 0.3);
-  border-top-color: #1a75ed;
+  border-top-color: #1663cf;
   border-radius: 50%;
   animation: spinner-spin 0.7s linear infinite;
 }
@@ -432,7 +432,7 @@
   margin-top: 12px;
   border: none;
   border-radius: 10px;
-  background: #1a75ed;
+  background: #1663cf;
   color: #ffffff;
   padding: 11px 20px;
   font-size: 14px;
@@ -441,7 +441,7 @@
 }
 
 .empty-state-action:hover {
-  background: #1663cf;
+  background: #124f8f;
 }
 
 /* ---------- Animations ---------- */
