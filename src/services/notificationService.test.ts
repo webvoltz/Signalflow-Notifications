@@ -72,6 +72,22 @@ describe('createNotification', () => {
     expect(payload['message']).toEqual(expect.stringContaining('Alert'));
   });
 
+  it.each(['info', 'message'] as const)(
+    'derives the title from the %s notification type',
+    async (type) => {
+      addDocMock.mockResolvedValue({ id: 'doc-1' });
+
+      await createNotification(type);
+
+      const call = addDocMock.mock.calls[0];
+      if (call === undefined) {
+        throw new Error('addDoc was not called');
+      }
+      const [, payload] = call;
+      expect(payload['type']).toBe(type);
+    },
+  );
+
   it('propagates Firestore write failures to the caller', async () => {
     addDocMock.mockRejectedValue(new Error('permission-denied'));
 

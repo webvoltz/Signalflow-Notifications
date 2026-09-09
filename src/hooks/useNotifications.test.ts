@@ -101,4 +101,48 @@ describe('useNotifications', () => {
     expect(result.current.error).toBe('quota-exceeded');
     expect(result.current.notifications).toEqual([sampleNotification]);
   });
+
+  it('clears any prior error once a notification is created successfully', async () => {
+    createNotificationMock.mockResolvedValue('new-id');
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.sendNotification('info');
+    });
+
+    expect(createNotificationMock).toHaveBeenCalledWith('info');
+    expect(result.current.error).toBeNull();
+  });
+
+  it('leaves other notifications untouched when marking one as read', async () => {
+    const otherNotification: NotificationRecord = {
+      id: 'n2',
+      type: 'alert',
+      message: 'Other',
+      read: false,
+      createdAt: 2,
+    };
+    subscribeMock.mockImplementation((onData: (notifications: NotificationRecord[]) => void) => {
+      onData([sampleNotification, otherNotification]);
+      return vi.fn();
+    });
+    markNotificationAsReadMock.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.markAsRead('n1');
+    });
+
+    expect(result.current.notifications.find((n) => n.id === 'n1')?.read).toBe(true);
+    expect(result.current.notifications.find((n) => n.id === 'n2')).toEqual(otherNotification);
+  });
 });
