@@ -56,13 +56,18 @@ const CreateNotificationModal: FC<CreateNotificationModalProps> = ({ onClose, on
       dialogRef.current?.querySelector<HTMLElement>('button, input, select');
     focusable?.focus();
 
-    return () => {
-      triggerElementRef.current?.focus();
-    };
+    // Deliberately no cleanup here that refocuses the trigger: React's
+    // StrictMode double-invokes every effect (setup -> cleanup ->
+    // setup) once in development, and a cleanup-driven focus change
+    // would fire a real blur on the textarea before the user ever
+    // touches it, marking the field "touched" and showing a validation
+    // error the instant the dialog opens. Every real close path below
+    // restores focus explicitly instead.
   }, []);
 
   const closeUnlessSubmitting = (): void => {
     if (!isSubmitting) {
+      triggerElementRef.current?.focus();
       onClose();
     }
   };
@@ -113,6 +118,7 @@ const CreateNotificationModal: FC<CreateNotificationModalProps> = ({ onClose, on
     setIsSubmitting(false);
 
     if (success) {
+      triggerElementRef.current?.focus();
       onClose();
     } else {
       setSubmitError('Unable to send notification. Please try again.');

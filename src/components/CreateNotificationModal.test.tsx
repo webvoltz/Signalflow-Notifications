@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import CreateNotificationModal from './CreateNotificationModal';
 
@@ -150,10 +151,29 @@ describe('CreateNotificationModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
-
-    // Simulate the parent actually unmounting the modal in response to onClose.
-    trigger.focus();
     expect(document.activeElement).toBe(trigger);
+  });
+
+  it('does not show a validation error on open under StrictMode', () => {
+    // Regression test: an earlier version restored focus to the trigger
+    // element from the focus-management effect's cleanup. React's
+    // StrictMode double-invokes every effect in development (setup ->
+    // cleanup -> setup) specifically to catch cleanup that isn't safe to
+    // run early - that refocus fired a real blur on the textarea before
+    // the user ever touched it, marking the field "touched" and showing
+    // "Message is required." the instant the dialog opened.
+    const trigger = document.createElement('button');
+    document.body.appendChild(trigger);
+    trigger.focus();
+
+    render(
+      <StrictMode>
+        <CreateNotificationModal onClose={vi.fn()} onSubmit={vi.fn()} />
+      </StrictMode>,
+    );
+
+    expect(screen.queryByText('Message is required.')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Message')).toHaveValue('');
   });
 
   it('closes when Escape is pressed', () => {
