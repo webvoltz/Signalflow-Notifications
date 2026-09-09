@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { FC } from 'react';
+import LoadingScreen from './components/LoadingScreen';
 import NotificationButton from './components/NotificationButton';
 import NotificationList from './components/NotificationList';
 import { useNotifications } from './hooks/useNotifications';
@@ -25,6 +26,10 @@ const App: FC = () => {
     [markAsRead],
   );
 
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <div className="App">
       <header className="App-header">
@@ -43,11 +48,7 @@ const App: FC = () => {
       )}
 
       <main className="notification-table">
-        {loading ? (
-          <p role="status">Loading notifications…</p>
-        ) : (
-          <NotificationList notifications={notifications} onMarkAsRead={handleMarkAsRead} />
-        )}
+        <NotificationList notifications={notifications} onMarkAsRead={handleMarkAsRead} />
       </main>
     </div>
   );

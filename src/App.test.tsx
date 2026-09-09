@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 
 interface FakeDocSnapshot {
@@ -7,8 +7,11 @@ interface FakeDocSnapshot {
   data: () => unknown;
 }
 
+type SnapshotCallback = (snapshot: { docs: FakeDocSnapshot[] }) => void;
+
 const addDocMock = vi.fn<(collectionRef: unknown, data: unknown) => Promise<{ id: string }>>();
-let latestSnapshotCallback: ((snapshot: { docs: FakeDocSnapshot[] }) => void) | undefined;
+const onSnapshotMock = vi.fn<(collectionRef: unknown, onNext: SnapshotCallback) => () => void>();
+let latestSnapshotCallback: SnapshotCallback | undefined;
 
 vi.mock('./config/firebase', () => ({
   firestore: {},
@@ -18,11 +21,7 @@ vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
   doc: vi.fn(),
   addDoc: (...args: Parameters<typeof addDocMock>) => addDocMock(...args),
-  onSnapshot: vi.fn((_query: unknown, onNext: (snapshot: { docs: FakeDocSnapshot[] }) => void) => {
-    latestSnapshotCallback = onNext;
-    onNext({ docs: [] });
-    return vi.fn();
-  }),
+  onSnapshot: (...args: Parameters<typeof onSnapshotMock>) => onSnapshotMock(...args),
   updateDoc: vi.fn().mockResolvedValue(undefined),
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   Timestamp: class {
@@ -36,7 +35,33 @@ function pushSnapshot(docs: FakeDocSnapshot[]): void {
   latestSnapshotCallback?.({ docs });
 }
 
+beforeEach(() => {
+  addDocMock.mockReset();
+  onSnapshotMock.mockReset();
+  onSnapshotMock.mockImplementation((_collectionRef, onNext) => {
+    latestSnapshotCallback = onNext;
+    onNext({ docs: [] });
+    return vi.fn();
+  });
+});
+
 describe('App', () => {
+  it('shows a loading screen before the first snapshot arrives', async () => {
+    onSnapshotMock.mockImplementationOnce((_collectionRef, onNext) => {
+      latestSnapshotCallback = onNext;
+      return vi.fn();
+    });
+
+    render(<App />);
+
+    expect(screen.getByRole('status')).toHaveTextContent(/Connecting to Firestore/i);
+    expect(screen.queryByRole('button', { name: /Send info/i })).not.toBeInTheDocument();
+
+    pushSnapshot([]);
+
+    expect(await screen.findByRole('button', { name: /Send info/i })).toBeInTheDocument();
+  });
+
   it('shows the notifications header and a send button', () => {
     render(<App />);
 
