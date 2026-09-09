@@ -2,17 +2,17 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 
-vi.mock('./firebaseConfig', () => ({
-  db: {},
+vi.mock('./config/firebase', () => ({
+  firestore: {},
 }));
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
+  doc: vi.fn(),
   onSnapshot: vi.fn((_query: unknown, callback: (snapshot: { docs: unknown[] }) => void) => {
     callback({ docs: [] });
     return vi.fn();
   }),
-  doc: vi.fn(),
   updateDoc: vi.fn(),
 }));
 

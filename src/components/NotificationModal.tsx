@@ -1,11 +1,11 @@
 import type { FC } from 'react';
 import { Modal, Button } from 'antd';
-import type { Notification } from '../App';
+import type { NotificationRecord } from '../types/notification';
 
 interface NotificationModalProps {
   visible: boolean;
   onClose: () => void;
-  notification: Notification | null;
+  notification: NotificationRecord | null;
 }
 
 /**

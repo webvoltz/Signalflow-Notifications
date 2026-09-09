@@ -1,28 +1,25 @@
 import { useMemo, useState } from 'react';
 import type { FC } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
-import type { Notification } from '../App';
 import { Table, Button, Tag } from 'antd';
+import type { NotificationRecord } from '../types/notification';
+import { markNotificationAsRead } from '../services/notificationService';
 import NotificationModal from './NotificationModal';
 
 interface NotificationTableProps {
-  data: Notification[];
+  data: NotificationRecord[];
 }
 
 /**
  * Component to render a table of notifications with functionality to view and mark notifications as read.
  */
 const NotificationTable: FC<NotificationTableProps> = ({ data }) => {
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [selectedNotification, setSelectedNotification] = useState<NotificationRecord | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const openModal = async (notification: Notification) => {
+  const openModal = async (notification: NotificationRecord) => {
     setSelectedNotification(notification);
     setModalVisible(true);
-
-    const notificationDocRef = doc(db, 'notifications', notification.id);
-    await updateDoc(notificationDocRef, { read: true });
+    await markNotificationAsRead(notification.id);
   };
 
   const closeModal = () => {
@@ -35,7 +32,7 @@ const NotificationTable: FC<NotificationTableProps> = ({ data }) => {
       title: 'Message',
       dataIndex: 'message',
       key: 'message',
-      render: (text: string, record: Notification) => (
+      render: (text: string, record: NotificationRecord) => (
         <>
           {text}
           {!record.read && (
@@ -69,7 +66,7 @@ const NotificationTable: FC<NotificationTableProps> = ({ data }) => {
     {
       title: 'Action',
       key: 'action',
-      render: (_: unknown, record: Notification) => (
+      render: (_: unknown, record: NotificationRecord) => (
         <Button
           onClick={() => {
             void openModal(record);

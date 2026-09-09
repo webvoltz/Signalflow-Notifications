@@ -1,50 +1,21 @@
 import { useEffect, useState } from 'react';
 import type { FC } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
-import { z } from 'zod';
-import { db } from './firebaseConfig';
+import { ToastContainer } from 'react-toastify';
 import NotificationButton from './components/NotificationButton';
 import NotificationTable from './components/NotificationTable';
-import { ToastContainer } from 'react-toastify';
+import { subscribeToNotifications } from './services/notificationService';
+import type { NotificationRecord } from './types/notification';
 import './App.css';
 
-const notificationDataSchema = z.object({
-  type: z.string(),
-  message: z.string(),
-  read: z.boolean(),
-  timestamp: z.object({
-    seconds: z.number(),
-    nanoseconds: z.number(),
-  }),
-});
-
-export type Notification = z.infer<typeof notificationDataSchema> & { id: string };
-
-function toNotification(id: string, data: unknown): Notification | null {
-  const result = notificationDataSchema.safeParse(data);
-
-  if (!result.success) {
-    return null;
-  }
-
-  return { id, ...result.data };
-}
-
 const App: FC = () => {
-  const [data, setData] = useState<Notification[]>([]);
+  const [data, setData] = useState<NotificationRecord[]>([]);
 
   /**
    * Effect to subscribe to the notifications collection on Firestore.
    * Automatically unsubscribes on component unmount.
    */
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'notifications'), (snapshot) => {
-      const notifications: Notification[] = snapshot.docs
-        .map((docSnapshot) => toNotification(docSnapshot.id, docSnapshot.data()))
-        .filter((notification): notification is Notification => notification !== null);
-
-      setData(notifications);
-    });
+    const unsubscribe = subscribeToNotifications(setData);
 
     return () => {
       unsubscribe();

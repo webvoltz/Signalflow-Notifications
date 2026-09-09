@@ -1,25 +1,24 @@
-import { addDoc, collection, updateDoc, type DocumentReference } from 'firebase/firestore';
 import { useState } from 'react';
 import type { FC } from 'react';
-import { db } from '../firebaseConfig';
 import { toast } from 'react-toastify';
 import { Modal, Button } from 'antd';
+import { markNotificationAsRead } from '../services/notificationService';
 
-interface ToastifyNotificationProps {
+interface NotificationToastProps {
   title: string;
   body: string;
-  docRef: DocumentReference;
+  notificationId: string;
 }
 
 /**
  * Displays a notification with options to mark it as read.
  */
-export const ToastifyNotification: FC<ToastifyNotificationProps> = ({ title, body, docRef }) => {
+const NotificationToast: FC<NotificationToastProps> = ({ title, body, notificationId }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleClick = async () => {
     setIsModalVisible(true);
-    await markNotificationAsRead(docRef);
+    await markNotificationAsRead(notificationId);
   };
 
   const handleOk = () => {
@@ -32,7 +31,7 @@ export const ToastifyNotification: FC<ToastifyNotificationProps> = ({ title, bod
   };
 
   const handleMarkAsRead = async () => {
-    await markNotificationAsRead(docRef);
+    await markNotificationAsRead(notificationId);
     toast.dismiss();
   };
 
@@ -86,41 +85,4 @@ export const ToastifyNotification: FC<ToastifyNotificationProps> = ({ title, bod
   );
 };
 
-/**
- * Generates a random three-digit number.
- */
-function generateRandom3DigitNumber(): number {
-  return Math.floor(Math.random() * 900) + 100;
-}
-
-/**
- * Sends a notification of a given type and adds it to Firestore.
- */
-export const sendNotification = async (type: string): Promise<void> => {
-  try {
-    const title = type === 'info' ? 'Info' : type === 'alert' ? 'Alert' : 'Message';
-    const randomDigits = generateRandom3DigitNumber();
-    const message = `This is a sample ${title} text - ${randomDigits.toString()}`;
-    const docRef = await addDoc(collection(db, 'notifications'), {
-      type,
-      message,
-      read: false,
-      timestamp: new Date(),
-    });
-
-    toast(<ToastifyNotification title={`New ${title}`} body={message} docRef={docRef} />);
-  } catch (error) {
-    console.error('Error adding document: ', error);
-  }
-};
-
-/**
- * Marks a notification as read in Firestore.
- */
-export const markNotificationAsRead = async (docRef: DocumentReference): Promise<void> => {
-  try {
-    await updateDoc(docRef, { read: true });
-  } catch (error) {
-    console.error('Error updating document: ', error);
-  }
-};
+export default NotificationToast;
