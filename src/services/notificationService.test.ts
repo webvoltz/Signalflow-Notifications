@@ -58,10 +58,10 @@ beforeEach(() => {
 });
 
 describe('createNotification', () => {
-  it('writes the expected payload shape to Firestore', async () => {
+  it('writes the exact type/message/read/createdAt payload shape to Firestore', async () => {
     addDocMock.mockResolvedValue({ id: 'doc-1' });
 
-    const id = await createNotification('alert');
+    const id = await createNotification('alert', 'Disk usage is high');
 
     expect(id).toBe('doc-1');
     expect(addDocMock).toHaveBeenCalledTimes(1);
@@ -71,33 +71,43 @@ describe('createNotification', () => {
       throw new Error('addDoc was not called');
     }
     const [, payload] = call;
-    expect(payload['type']).toBe('alert');
-    expect(payload['read']).toBe(false);
-    expect(payload['createdAt']).toBe('SERVER_TIMESTAMP_SENTINEL');
-    expect(typeof payload['message']).toBe('string');
-    expect(payload['message']).toEqual(expect.stringContaining('Alert'));
+    expect(payload).toEqual({
+      type: 'alert',
+      message: 'Disk usage is high',
+      read: false,
+      createdAt: 'SERVER_TIMESTAMP_SENTINEL',
+    });
   });
 
-  it.each(['info', 'message'] as const)(
-    'derives the title from the %s notification type',
-    async (type) => {
-      addDocMock.mockResolvedValue({ id: 'doc-1' });
+  it('trims the message before writing it', async () => {
+    addDocMock.mockResolvedValue({ id: 'doc-1' });
 
-      await createNotification(type);
+    await createNotification('info', '  padded message  ');
 
-      const call = addDocMock.mock.calls[0];
-      if (call === undefined) {
-        throw new Error('addDoc was not called');
-      }
-      const [, payload] = call;
-      expect(payload['type']).toBe(type);
-    },
-  );
+    const call = addDocMock.mock.calls[0];
+    if (call === undefined) {
+      throw new Error('addDoc was not called');
+    }
+    const [, payload] = call;
+    expect(payload['message']).toBe('padded message');
+  });
+
+  it('rejects a whitespace-only message before ever reaching Firestore', async () => {
+    await expect(createNotification('info', '   ')).rejects.toThrow();
+
+    expect(addDocMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a message over the maximum length before ever reaching Firestore', async () => {
+    await expect(createNotification('info', 'x'.repeat(501))).rejects.toThrow();
+
+    expect(addDocMock).not.toHaveBeenCalled();
+  });
 
   it('propagates Firestore write failures to the caller', async () => {
     addDocMock.mockRejectedValue(new Error('permission-denied'));
 
-    await expect(createNotification('info')).rejects.toThrow('permission-denied');
+    await expect(createNotification('info', 'Hello')).rejects.toThrow('permission-denied');
   });
 });
 

@@ -13,10 +13,18 @@ import { firestore } from '../config/firebase';
 import type { NotificationRecord, NotificationType } from '../types/notification';
 
 const NOTIFICATIONS_COLLECTION = 'notifications';
+const MAX_MESSAGE_LENGTH = 500;
 
-const notificationDocumentSchema = z.object({
+// Shared by both directions: validated before a write leaves the client
+// (defense in depth - the UI already validates, but never trust that
+// alone), and reused (via .extend()) to validate documents read back
+// off a snapshot, so the shape is defined exactly once.
+const notificationInputSchema = z.object({
   type: z.enum(['info', 'alert', 'message']),
-  message: z.string(),
+  message: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+});
+
+const notificationDocumentSchema = notificationInputSchema.extend({
   read: z.boolean(),
   createdAt: z.union([z.instanceof(Timestamp), z.null()]),
 });
@@ -42,32 +50,16 @@ function toNotificationRecord(id: string, data: unknown): NotificationRecord | n
   };
 }
 
-function generateSampleDigits(): string {
-  return String(Math.floor(Math.random() * 900) + 100);
-}
-
-function titleForType(type: NotificationType): string {
-  switch (type) {
-    case 'info':
-      return 'Info';
-    case 'alert':
-      return 'Alert';
-    case 'message':
-      return 'Message';
-  }
-}
-
 /**
- * Creates a sample notification of the given type in Firestore.
+ * Creates a notification of the given type with the given message.
  * Returns the new document's id.
  */
-export async function createNotification(type: NotificationType): Promise<string> {
-  const title = titleForType(type);
-  const message = `This is a sample ${title} text - ${generateSampleDigits()}`;
+export async function createNotification(type: NotificationType, message: string): Promise<string> {
+  const input = notificationInputSchema.parse({ type, message });
 
   const docRef = await addDoc(collection(firestore, NOTIFICATIONS_COLLECTION), {
-    type,
-    message,
+    type: input.type,
+    message: input.message,
     read: false,
     createdAt: serverTimestamp(),
   });

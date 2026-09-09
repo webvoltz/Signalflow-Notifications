@@ -2,7 +2,6 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationRecord } from '../types/notification';
 import type { NotificationsSnapshotMeta } from '../services/notificationService';
-import { humanizeFirestoreError } from '../utils/humanizeFirestoreError';
 
 type SubscribeCallback = (
   notifications: NotificationRecord[],
@@ -11,7 +10,7 @@ type SubscribeCallback = (
 type ErrorCallback = (error: Error) => void;
 
 const subscribeMock = vi.fn<(onData: SubscribeCallback, onError: ErrorCallback) => () => void>();
-const createNotificationMock = vi.fn<(type: string) => Promise<string>>();
+const createNotificationMock = vi.fn<(type: string, message: string) => Promise<string>>();
 const markNotificationAsReadMock = vi.fn<(id: string) => Promise<void>>();
 
 vi.mock('../services/notificationService', () => ({
@@ -52,17 +51,18 @@ describe('useNotifications', () => {
     const { result } = renderHook(() => useNotifications());
 
     expect(result.current.loading).toBe(true);
-    expect(result.current.notifications).toEqual([]);
+    expect(result.current.connectionStatus).toBe('reconnecting');
 
     act(() => {
       capturedOnData?.([sampleNotification], { fromCache: false });
     });
 
     expect(result.current.loading).toBe(false);
+    expect(result.current.connectionStatus).toBe('connected');
     expect(result.current.notifications).toEqual([sampleNotification]);
   });
 
-  it('applies an optimistic read update immediately', async () => {
+  it('applies an optimistic read update immediately and resolves true on success', async () => {
     markNotificationAsReadMock.mockResolvedValue(undefined);
     const { result } = renderHook(() => useNotifications());
 
@@ -70,16 +70,17 @@ describe('useNotifications', () => {
       expect(result.current.loading).toBe(false);
     });
 
+    let success: boolean | undefined;
     await act(async () => {
-      await result.current.markAsRead('n1');
+      success = await result.current.markAsRead('n1');
     });
 
+    expect(success).toBe(true);
     expect(result.current.notifications[0]?.read).toBe(true);
     expect(markNotificationAsReadMock).toHaveBeenCalledWith('n1');
-    expect(result.current.error).toBeNull();
   });
 
-  it('rolls back the optimistic update when the write fails', async () => {
+  it('rolls back the optimistic update and resolves false when the write fails', async () => {
     markNotificationAsReadMock.mockRejectedValue(new Error('permission-denied'));
     const { result } = renderHook(() => useNotifications());
 
@@ -87,61 +88,41 @@ describe('useNotifications', () => {
       expect(result.current.loading).toBe(false);
     });
 
+    let success: boolean | undefined;
+    await act(async () => {
+      success = await result.current.markAsRead('n1');
+    });
+
+    expect(success).toBe(false);
+    expect(result.current.notifications[0]?.read).toBe(false);
+  });
+
+  it('rolls back only the targeted notification, leaving others untouched', async () => {
+    const otherNotification: NotificationRecord = {
+      id: 'n2',
+      type: 'alert',
+      message: 'Other',
+      read: false,
+      createdAt: 2,
+    };
+    subscribeMock.mockImplementation((onData) => {
+      onData([sampleNotification, otherNotification], { fromCache: false });
+      return vi.fn();
+    });
+    markNotificationAsReadMock.mockRejectedValue(new Error('permission-denied'));
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
     await act(async () => {
       await result.current.markAsRead('n1');
     });
 
-    expect(result.current.notifications[0]?.read).toBe(false);
-    expect(result.current.error).toBe(humanizeFirestoreError('permission-denied'));
-  });
-
-  it('surfaces subscription errors and stops loading', async () => {
-    subscribeMock.mockImplementation((_onData: unknown, onError: (error: Error) => void) => {
-      onError(new Error('unavailable'));
-      return vi.fn();
-    });
-
-    const { result } = renderHook(() => useNotifications());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    expect(result.current.error).toBe(humanizeFirestoreError('unavailable'));
-    expect(result.current.notifications).toEqual([]);
-  });
-
-  it('surfaces a creation failure without touching the notification list', async () => {
-    createNotificationMock.mockRejectedValue(new Error('quota-exceeded'));
-    const { result } = renderHook(() => useNotifications());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.sendNotification('alert');
-    });
-
-    expect(createNotificationMock).toHaveBeenCalledWith('alert');
-    expect(result.current.error).toBe('quota-exceeded');
-    expect(result.current.notifications).toEqual([sampleNotification]);
-  });
-
-  it('clears any prior error once a notification is created successfully', async () => {
-    createNotificationMock.mockResolvedValue('new-id');
-    const { result } = renderHook(() => useNotifications());
-
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-    });
-
-    await act(async () => {
-      await result.current.sendNotification('info');
-    });
-
-    expect(createNotificationMock).toHaveBeenCalledWith('info');
-    expect(result.current.error).toBeNull();
+    expect(result.current.notifications.find((n) => n.id === 'n1')?.read).toBe(false);
+    expect(result.current.notifications.find((n) => n.id === 'n2')).toEqual(otherNotification);
   });
 
   it('leaves other notifications untouched when marking one as read', async () => {
@@ -170,5 +151,88 @@ describe('useNotifications', () => {
 
     expect(result.current.notifications.find((n) => n.id === 'n1')?.read).toBe(true);
     expect(result.current.notifications.find((n) => n.id === 'n2')).toEqual(otherNotification);
+  });
+
+  it('surfaces subscription errors, sets connectionStatus to error, and stops loading', async () => {
+    subscribeMock.mockImplementation((_onData, onError) => {
+      onError(new Error('unavailable'));
+      return vi.fn();
+    });
+
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.connectionStatus).toBe('error');
+    expect(result.current.connectionError).toContain('npm run emulators');
+    expect(result.current.notifications).toEqual([]);
+  });
+
+  it('resolves true when a notification is created successfully', async () => {
+    createNotificationMock.mockResolvedValue('new-id');
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    let success: boolean | undefined;
+    await act(async () => {
+      success = await result.current.sendNotification('info', 'Hello there');
+    });
+
+    expect(success).toBe(true);
+    expect(createNotificationMock).toHaveBeenCalledWith('info', 'Hello there');
+  });
+
+  it('resolves false without touching the notification list when creation fails', async () => {
+    createNotificationMock.mockRejectedValue(new Error('quota-exceeded'));
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    let success: boolean | undefined;
+    await act(async () => {
+      success = await result.current.sendNotification('alert', 'Uh oh');
+    });
+
+    expect(success).toBe(false);
+    expect(result.current.notifications).toEqual([sampleNotification]);
+  });
+
+  it('retryConnection re-subscribes and reports reconnecting until confirmed', async () => {
+    const { result } = renderHook(() => useNotifications());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    expect(subscribeMock).toHaveBeenCalledTimes(1);
+
+    // The next subscribe call (triggered by retryConnection) doesn't
+    // auto-resolve, so the transient "reconnecting" state is actually
+    // observable instead of settling to "connected" within the same act().
+    let capturedOnData: SubscribeCallback | undefined;
+    subscribeMock.mockImplementation((onData) => {
+      capturedOnData = onData;
+      return vi.fn();
+    });
+
+    act(() => {
+      result.current.retryConnection();
+    });
+
+    expect(result.current.connectionStatus).toBe('reconnecting');
+    expect(result.current.connectionError).toBeNull();
+    expect(subscribeMock).toHaveBeenCalledTimes(2);
+
+    act(() => {
+      capturedOnData?.([sampleNotification], { fromCache: false });
+    });
+
+    expect(result.current.connectionStatus).toBe('connected');
   });
 });

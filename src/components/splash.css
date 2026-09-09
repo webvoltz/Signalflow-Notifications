@@ -190,6 +190,27 @@
   font-weight: 700;
 }
 
+.splash-button {
+  margin: 4px 0 0;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.18);
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #eff6ff;
+  cursor: pointer;
+}
+
+.splash-button:hover {
+  background: rgba(59, 130, 246, 0.28);
+}
+
+.splash-button:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
 .splash-code {
   width: 100%;
   margin: 4px 0 0;

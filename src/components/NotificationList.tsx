@@ -1,63 +1,133 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { FC } from 'react';
-import type { NotificationRecord } from '../types/notification';
+import type { NotificationRecord, NotificationType } from '../types/notification';
+import { NOTIFICATION_TYPE_META, NOTIFICATION_TYPES } from '../utils/notificationTypeMeta';
+import NotificationCard from './NotificationCard';
+import EmptyState from './EmptyState';
+
+type StatusFilter = 'all' | 'unread' | 'read';
+type TypeFilter = 'all' | NotificationType;
 
 interface NotificationListProps {
   notifications: readonly NotificationRecord[];
-  onMarkAsRead: (id: string) => void;
+  onMarkAsRead: (id: string) => Promise<boolean>;
+  onCreateRequested: () => void;
 }
 
+const STAGGER_STEP_MS = 40;
+const MAX_STAGGER_MS = 400;
+
 /**
- * Renders the realtime notification list, newest first, with an
- * unread/read indicator and a mark-as-read action per row.
+ * Renders the realtime notification list, newest first, as a card list
+ * with client-side status/type filters. Filtering never touches
+ * Firestore - it's a view over the same data useNotifications already
+ * subscribed to.
  */
-const NotificationList: FC<NotificationListProps> = ({ notifications, onMarkAsRead }) => {
+const NotificationList: FC<NotificationListProps> = ({
+  notifications,
+  onMarkAsRead,
+  onCreateRequested,
+}) => {
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+
   const sortedNotifications = useMemo(
     () => [...notifications].sort((a, b) => b.createdAt - a.createdAt),
     [notifications],
   );
 
+  const statusCounts = useMemo(
+    () => ({
+      all: sortedNotifications.length,
+      unread: sortedNotifications.filter((notification) => !notification.read).length,
+      read: sortedNotifications.filter((notification) => notification.read).length,
+    }),
+    [sortedNotifications],
+  );
+
+  const filteredNotifications = useMemo(
+    () =>
+      sortedNotifications.filter((notification) => {
+        if (statusFilter === 'unread' && notification.read) {
+          return false;
+        }
+        if (statusFilter === 'read' && !notification.read) {
+          return false;
+        }
+        if (typeFilter !== 'all' && notification.type !== typeFilter) {
+          return false;
+        }
+        return true;
+      }),
+    [sortedNotifications, statusFilter, typeFilter],
+  );
+
   if (sortedNotifications.length === 0) {
-    return <p className="notification-empty">No notifications yet.</p>;
+    return <EmptyState onCreateRequested={onCreateRequested} />;
   }
 
   return (
-    <table className="notification-table">
-      <caption className="sr-only">Notifications</caption>
-      <thead>
-        <tr>
-          <th scope="col">Message</th>
-          <th scope="col">Type</th>
-          <th scope="col">Status</th>
-          <th scope="col">Received</th>
-          <th scope="col">
-            <span className="sr-only">Actions</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {sortedNotifications.map((notification) => (
-          <tr key={notification.id} className={notification.read ? 'is-read' : 'is-unread'}>
-            <td>{notification.message}</td>
-            <td>{notification.type}</td>
-            <td>{notification.read ? 'Read' : 'Unread'}</td>
-            <td>{new Date(notification.createdAt).toLocaleString()}</td>
-            <td>
-              {!notification.read && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onMarkAsRead(notification.id);
-                  }}
-                >
-                  Mark as read
-                </button>
-              )}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <section className="notification-center" aria-label="Notification center">
+      <div className="notification-filters">
+        <div className="filter-group" role="group" aria-label="Filter by status">
+          {(['all', 'unread', 'read'] as const).map((status) => (
+            <button
+              key={status}
+              type="button"
+              className={`filter-chip ${statusFilter === status ? 'is-active' : ''}`}
+              aria-pressed={statusFilter === status}
+              onClick={() => {
+                setStatusFilter(status);
+              }}
+            >
+              {status === 'all' ? 'All' : status === 'unread' ? 'Unread' : 'Read'}{' '}
+              <span className="filter-chip-count">{statusCounts[status]}</span>
+            </button>
+          ))}
+        </div>
+        <div className="filter-group" role="group" aria-label="Filter by type">
+          <button
+            type="button"
+            className={`filter-chip ${typeFilter === 'all' ? 'is-active' : ''}`}
+            aria-pressed={typeFilter === 'all'}
+            onClick={() => {
+              setTypeFilter('all');
+            }}
+          >
+            All types
+          </button>
+          {NOTIFICATION_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              className={`filter-chip ${typeFilter === type ? 'is-active' : ''}`}
+              aria-pressed={typeFilter === type}
+              onClick={() => {
+                setTypeFilter(type);
+              }}
+            >
+              <span aria-hidden="true">{NOTIFICATION_TYPE_META[type].icon}</span>{' '}
+              {NOTIFICATION_TYPE_META[type].label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filteredNotifications.length === 0 ? (
+        <p className="notification-filters-empty">No notifications match these filters.</p>
+      ) : (
+        <ul className="notification-card-list">
+          {filteredNotifications.map((notification, index) => (
+            <NotificationCard
+              key={notification.id}
+              notification={notification}
+              animationDelayMs={Math.min(index * STAGGER_STEP_MS, MAX_STAGGER_MS)}
+              onMarkAsRead={onMarkAsRead}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
   );
 };
 

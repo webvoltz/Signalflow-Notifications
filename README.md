@@ -9,19 +9,31 @@ product in its own right.
 
 ## ✨ Features
 
+- **Realtime notification dashboard** - a header with a live connection indicator and unread
+  badge, total/unread/read summary cards, status/type filters, and a card list - not a bare table.
 - **Realtime Firestore subscription** - the notification list is never fetched once; it's a live
-  `onSnapshot` listener mapped straight into React state.
+  `onSnapshot` listener mapped straight into React state, gated on server confirmation (not just a
+  local cache echo) before the app ever reports itself as connected.
 - **Optimistic updates with rollback** - marking a notification as read flips it in the UI
   immediately and rolls back automatically if the Firestore write fails.
-- **Loading and error states** - both the subscription and each write surface failures instead of
-  failing silently.
-- **Runtime validation** - every Firestore document and every `VITE_` environment variable is
-  parsed through a zod schema before the app trusts it.
+- **A real creation flow** - a modal with type selection, a validated message field (required,
+  no whitespace-only, 500-character limit, live counter), and submit states that never lose the
+  user's typed message on failure.
+- **Toasts, not silent failures** - success/error feedback for every write, with plain-language
+  copy - never a raw Firebase error object.
+- **Connection recovery** - a persistent panel with a Retry action when the realtime subscription
+  itself fails, independent of the toasts used for individual write failures.
+- **Runtime validation** - every Firestore document, every outgoing write, and every `VITE_`
+  environment variable is parsed through a zod schema before the app trusts it.
 - **Emulator-first development** - the app runs against the Firestore emulator by default, with
   security rules exercised the same way locally as in production.
 - **Firestore security rules** - writes are constrained to the exact document shape the app
   produces; nothing else is accepted.
+- **Accessible by default** - a focus-trapped, Escape-closable modal, `aria-live` toasts, semantic
+  status/alert roles, visible focus states, and type always shown as an icon **and** a text label
+  (never color alone).
 - **Strict TypeScript** - no `any` anywhere, full `strict` compiler family, zero-warning ESLint.
+- Animations respect `prefers-reduced-motion` throughout.
 
 ## 🧰 Tech stack
 
@@ -65,10 +77,14 @@ shape is dropped instead of crashing the UI.
 
 ```text
 src/
-  components/     NotificationButton, NotificationList - presentation only
-  hooks/          useNotifications - realtime state, loading/error, optimistic updates
+  components/     AppHeader, SummaryCards, NotificationList/Card, CreateNotificationModal,
+                  ToastViewport, EmptyState, ConnectionErrorPanel, LoadingScreen,
+                  ConfigErrorScreen, ErrorBoundary - all presentation only
+  hooks/          useNotifications (realtime state, connection status, optimistic updates),
+                  useToasts (feedback queue)
   services/       notificationService - the only module that talks to Firestore
   types/          NotificationRecord / NotificationType shared shape
+  utils/          formatRelativeTime, notificationTypeMeta, humanizeFirestoreError
   config/         Firebase app + Firestore initialization, env validation, emulator wiring
 firestore.rules   Security rules for the notifications collection
 firebase.json     Emulator ports and Firestore config
@@ -200,19 +216,32 @@ placeholder value in that mode.
 
 ## 🧪 Testing
 
-`npm test` runs the full suite with coverage thresholds enforced in `vite.config.ts`
-(currently 100% statements/functions/lines, 89.65% branches - above the 90/100/90/85 floor):
+`npm test` runs the full suite (96 tests) with coverage thresholds enforced in `vite.config.ts`
+(currently 98.9% statements, 95.2% branches, 100% functions, 98.9% lines - above the 90/85/100/90
+floor):
 
-- `src/services/notificationService.test.ts` - the exact Firestore write payload, realtime
-  snapshot-to-record mapping (including a pending server timestamp and a malformed document that
-  must be dropped rather than crash the subscription), and that write failures propagate to the
-  caller instead of being swallowed.
-- `src/hooks/useNotifications.test.ts` - the optimistic read update and its rollback on failure,
-  plus loading/error state for both the subscription and notification creation.
+- `src/services/notificationService.test.ts` - the exact Firestore write payload (including that
+  the outgoing message is validated and trimmed client-side before ever reaching Firestore),
+  realtime snapshot-to-record mapping (including a pending server timestamp and a malformed
+  document that must be dropped rather than crash the subscription), and that write failures
+  propagate to the caller instead of being swallowed.
+- `src/hooks/useNotifications.test.ts` - the loading/connection-status gate on server
+  confirmation, the optimistic read update and its rollback on failure (including that other
+  notifications are left untouched), and `retryConnection`'s re-subscribe behavior.
+- `src/hooks/useToasts.test.ts` - stacking, manual dismissal, and auto-dismiss timing.
+- `src/utils/formatRelativeTime.test.ts` - every relative-time bucket plus the "Time unavailable"
+  fallback for a non-finite timestamp (never "Invalid Date").
 - `src/config/env.test.ts` - valid config parses correctly; a missing/invalid value throws one
   generic error that never contains the value supplied.
-- Component tests (`App.test.tsx`, `NotificationList.test.tsx`, `NotificationButton.test.tsx`)
-  covering rendering, sorting, and the click -> callback wiring for send and mark-as-read.
+- `src/components/CreateNotificationModal.test.tsx` - validation timing (never on open), every
+  validation message, submit states, duplicate-submission prevention, focus trap (Tab/Shift+Tab
+  wrapping), Escape, and that a failed submission preserves the typed message.
+- `src/components/ErrorBoundary.test.tsx` - the fallback UI and that "Try again" attempts a fresh
+  render.
+- `src/App.test.tsx` - end-to-end flows: loading -> connected, connection error -> retry,
+  create -> toast, mark-as-read -> toast, and recovery via the error boundary.
+- Further component tests for `AppHeader`, `SummaryCards`, `NotificationList`/`NotificationCard`,
+  `EmptyState`, `ConnectionErrorPanel`, and `ToastViewport`.
 
 ## 🔒 Code quality and security
 
