@@ -222,16 +222,54 @@ placeholder value in that mode.
 
 ### ☁️ Run against a real Firebase project
 
-1. Create a Firestore-enabled project in the
-   [Firebase console](https://console.firebase.google.com/).
-2. Copy its web app config into `.env` (`VITE_FIREBASE_*` values) and update `.firebaserc`'s
-   `default` project id.
-3. Set `VITE_USE_FIRESTORE_EMULATOR=false`.
-4. Deploy the rules in this repo so production enforces the same constraints as the emulator:
+The emulator mode above needs no real account - `VITE_FIREBASE_*` can stay as placeholders. Only
+follow these steps if you actually want this app talking to a real Firebase project.
+
+1. 🆕 **Create a project** - go to the [Firebase console](https://console.firebase.google.com/),
+   click **Add project**, and follow the prompts (Google Analytics is optional, and not used by
+   this app).
+2. 🗄️ **Turn on Firestore** - in the left sidebar, **Build → Firestore Database → Create
+   database**. Pick any location; choose either mode, since `firestore.rules` (deployed in step 6)
+   is what actually enforces access either way.
+3. 📱 **Register a web app** - click the gear icon next to **Project Overview → Project settings**,
+   scroll to **Your apps**, click the **</>** (web) icon, give it any nickname, and click
+   **Register app**. You can leave Firebase Hosting unchecked.
+4. 📋 **Copy the config values shown** - Firebase displays a `firebaseConfig` object right after
+   registering (you can always get back to it later from **Project settings → Your apps → SDK
+   setup and configuration**):
+
+   ```js
+   const firebaseConfig = {
+     apiKey: '...',
+     authDomain: '...',
+     projectId: '...',
+     storageBucket: '...',
+     messagingSenderId: '...',
+     appId: '...',
+   };
+   ```
+
+5. 📝 **Paste each value into `.env`** - one-to-one, matching the property name:
+
+   | `firebaseConfig` property | `.env` variable                     |
+   | ------------------------- | ----------------------------------- |
+   | `apiKey`                  | `VITE_FIREBASE_API_KEY`             |
+   | `authDomain`              | `VITE_FIREBASE_AUTH_DOMAIN`         |
+   | `projectId`               | `VITE_FIREBASE_PROJECT_ID`          |
+   | `storageBucket`           | `VITE_FIREBASE_STORAGE_BUCKET`      |
+   | `messagingSenderId`       | `VITE_FIREBASE_MESSAGING_SENDER_ID` |
+   | `appId`                   | `VITE_FIREBASE_APP_ID`              |
+
+6. 🔁 **Switch off the emulator flag** - set `VITE_USE_FIRESTORE_EMULATOR=false` in `.env`.
+7. 🛡️ **Deploy the security rules** - update `.firebaserc`'s `default` project id to match, then
+   push this repo's rules so production enforces the exact same constraints as the emulator:
 
    ```bash
    firebase deploy --only firestore:rules
    ```
+
+8. ▶️ **Run it** - `npm run dev`. There's no emulator to start in this mode; the app talks to your
+   real Firestore project directly.
 
 ## ⚙️ Available commands
 
