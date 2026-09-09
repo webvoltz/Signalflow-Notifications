@@ -1,43 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import type { FC } from 'react';
-import { ToastContainer } from 'react-toastify';
 import NotificationButton from './components/NotificationButton';
-import NotificationTable from './components/NotificationTable';
-import { subscribeToNotifications } from './services/notificationService';
-import type { NotificationRecord } from './types/notification';
+import NotificationList from './components/NotificationList';
+import { useNotifications } from './hooks/useNotifications';
+import type { NotificationType } from './types/notification';
 import './App.css';
 
+const NOTIFICATION_TYPES: readonly NotificationType[] = ['info', 'alert', 'message'];
+
 const App: FC = () => {
-  const [data, setData] = useState<NotificationRecord[]>([]);
+  const { notifications, loading, error, sendNotification, markAsRead } = useNotifications();
 
-  /**
-   * Effect to subscribe to the notifications collection on Firestore.
-   * Automatically unsubscribes on component unmount.
-   */
-  useEffect(() => {
-    const unsubscribe = subscribeToNotifications(setData);
+  const handleSend = useCallback(
+    (type: NotificationType) => {
+      void sendNotification(type);
+    },
+    [sendNotification],
+  );
 
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  const handleMarkAsRead = useCallback(
+    (id: string) => {
+      void markAsRead(id);
+    },
+    [markAsRead],
+  );
 
   return (
     <div className="App">
       <header className="App-header">
-        {/* Buttons for sending different types of notifications */}
-        <NotificationButton type="info" />
-        <NotificationButton type="alert" />
-        <NotificationButton type="message" />
+        <h1>SignalFlow Notifications</h1>
+        <div className="App-actions">
+          {NOTIFICATION_TYPES.map((type) => (
+            <NotificationButton key={type} type={type} onSend={handleSend} />
+          ))}
+        </div>
       </header>
 
-      {/* Toast container to display notifications */}
-      <ToastContainer />
+      {error !== null && (
+        <p role="alert" className="app-error">
+          {error}
+        </p>
+      )}
 
-      {/* Table to display notification data */}
-      <div className="notification-table">
-        <NotificationTable data={data} />
-      </div>
+      <main className="notification-table">
+        {loading ? (
+          <p role="status">Loading notifications…</p>
+        ) : (
+          <NotificationList notifications={notifications} onMarkAsRead={handleMarkAsRead} />
+        )}
+      </main>
     </div>
   );
 };

@@ -3,7 +3,9 @@ import {
   collection,
   doc,
   onSnapshot,
+  serverTimestamp,
   updateDoc,
+  Timestamp,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { z } from 'zod';
@@ -12,20 +14,32 @@ import type { NotificationRecord, NotificationType } from '../types/notification
 
 const NOTIFICATIONS_COLLECTION = 'notifications';
 
-const notificationDataSchema = z.object({
+const notificationDocumentSchema = z.object({
   type: z.enum(['info', 'alert', 'message']),
   message: z.string(),
   read: z.boolean(),
-  timestamp: z.object({
-    seconds: z.number(),
-    nanoseconds: z.number(),
-  }),
+  createdAt: z.union([z.instanceof(Timestamp), z.null()]),
 });
 
 function toNotificationRecord(id: string, data: unknown): NotificationRecord | null {
-  const result = notificationDataSchema.safeParse(data);
+  const result = notificationDocumentSchema.safeParse(data);
 
-  return result.success ? { id, ...result.data } : null;
+  if (!result.success) {
+    return null;
+  }
+
+  const { type, message, read, createdAt } = result.data;
+
+  return {
+    id,
+    type,
+    message,
+    read,
+    // createdAt is null for the brief window between an optimistic client
+    // write and the server resolving its serverTimestamp() sentinel; the
+    // listener fires again with the real value as soon as it's available.
+    createdAt: createdAt === null ? Date.now() : createdAt.toMillis(),
+  };
 }
 
 function generateSampleDigits(): string {
@@ -43,16 +57,11 @@ function titleForType(type: NotificationType): string {
   }
 }
 
-export interface CreatedNotification {
-  id: string;
-  title: string;
-  message: string;
-}
-
 /**
  * Creates a sample notification of the given type in Firestore.
+ * Returns the new document's id.
  */
-export async function createNotification(type: NotificationType): Promise<CreatedNotification> {
+export async function createNotification(type: NotificationType): Promise<string> {
   const title = titleForType(type);
   const message = `This is a sample ${title} text - ${generateSampleDigits()}`;
 
@@ -60,10 +69,10 @@ export async function createNotification(type: NotificationType): Promise<Create
     type,
     message,
     read: false,
-    timestamp: new Date(),
+    createdAt: serverTimestamp(),
   });
 
-  return { id: docRef.id, title: `New ${title}`, message };
+  return docRef.id;
 }
 
 /**
@@ -72,14 +81,19 @@ export async function createNotification(type: NotificationType): Promise<Create
  */
 export function subscribeToNotifications(
   onData: (notifications: NotificationRecord[]) => void,
+  onError: (error: Error) => void,
 ): Unsubscribe {
-  return onSnapshot(collection(firestore, NOTIFICATIONS_COLLECTION), (snapshot) => {
-    const notifications = snapshot.docs
-      .map((docSnapshot) => toNotificationRecord(docSnapshot.id, docSnapshot.data()))
-      .filter((notification): notification is NotificationRecord => notification !== null);
+  return onSnapshot(
+    collection(firestore, NOTIFICATIONS_COLLECTION),
+    (snapshot) => {
+      const notifications = snapshot.docs
+        .map((docSnapshot) => toNotificationRecord(docSnapshot.id, docSnapshot.data()))
+        .filter((notification): notification is NotificationRecord => notification !== null);
 
-    onData(notifications);
-  });
+      onData(notifications);
+    },
+    onError,
+  );
 }
 
 /**

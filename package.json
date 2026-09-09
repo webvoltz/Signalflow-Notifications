@@ -24,11 +24,9 @@
     "emulators": "firebase emulators:start"
   },
   "dependencies": {
-    "antd": "6.6.3",
     "firebase": "12.18.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-toastify": "11.1.0",
     "zod": "4.5.4"
   },
   "devDependencies": {

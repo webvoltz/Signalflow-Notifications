@@ -5,8 +5,5 @@ export interface NotificationRecord {
   type: NotificationType;
   message: string;
   read: boolean;
-  timestamp: {
-    seconds: number;
-    nanoseconds: number;
-  };
+  createdAt: number;
 }
