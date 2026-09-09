@@ -531,7 +531,45 @@
   }
 }
 
-/* ---------- Responsive ---------- */
+/* ---------- Responsive ----------
+   Desktop-first cascade across four tiers. Each block only overrides
+   what actually needs to change at that width - most rules above
+   already work everywhere via flex-wrap/grid/relative units.
+
+   Desktop  >=1440px  - wide monitors: a bit more breathing room
+   Laptop   1024-1439px - the default/base styles above (no query)
+   Tablet    641-1023px - same layout as laptop, tighter spacing
+   Mobile        <=640px - single-column layout, stacked controls
+   Small mobile  <=380px - further refinement for the narrowest phones
+*/
+
+@media (min-width: 1440px) {
+  .app-main {
+    max-width: 1120px;
+  }
+
+  .summary-cards {
+    gap: 16px;
+  }
+
+  .notification-card-list {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .app-main {
+    padding: 20px 16px 56px;
+  }
+
+  .summary-cards {
+    gap: 10px;
+  }
+
+  .notification-filters {
+    gap: 10px;
+  }
+}
 
 @media (max-width: 640px) {
   .app-header {
@@ -560,12 +598,47 @@
     width: 100%;
   }
 
+  .notification-filters {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    justify-content: space-between;
+  }
+
   .notification-card {
     flex-direction: column;
   }
 
   .notification-card-footer {
     justify-content: space-between;
+  }
+}
+
+@media (max-width: 380px) {
+  .app-header-icon {
+    font-size: 26px;
+  }
+
+  .app-header-title {
+    font-size: 17px;
+  }
+
+  .summary-card {
+    padding: 10px 8px;
+  }
+
+  .summary-card-label {
+    font-size: 10.5px;
+  }
+
+  .summary-card-value {
+    font-size: 19px;
+  }
+
+  .filter-chip {
+    padding: 6px 10px;
+    font-size: 12px;
   }
 }
 

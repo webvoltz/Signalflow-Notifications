@@ -237,3 +237,20 @@
     animation: none;
   }
 }
+
+/* Small mobile: roomier tap targets, less wasted padding on a 320-380px
+   screen where the dialog already fills nearly the full viewport width. */
+@media (max-width: 380px) {
+  .modal-dialog {
+    padding: 18px 16px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
