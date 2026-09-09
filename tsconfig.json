@@ -29,7 +29,7 @@
     "noUncheckedSideEffectImports": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "strict": true,
     "strictBindCallApply": true,
     "strictBuiltinIteratorReturn": true,
