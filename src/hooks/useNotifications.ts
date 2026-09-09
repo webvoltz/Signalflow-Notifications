@@ -30,10 +30,18 @@ export function useNotifications(): UseNotificationsResult {
 
   useEffect(() => {
     const unsubscribe = subscribeToNotifications(
-      (data) => {
+      (data, meta) => {
         setNotifications(data);
-        setLoading(false);
         setError(null);
+
+        // Firestore's first snapshot is served from local cache, even
+        // with no emulator/backend reachable at all - only clear the
+        // initial loading state once the server has actually confirmed
+        // a snapshot, so a missing emulator shows "still connecting"
+        // instead of a false "loaded, no notifications".
+        if (!meta.fromCache) {
+          setLoading(false);
+        }
       },
       (subscriptionError) => {
         setError(subscriptionError.message);

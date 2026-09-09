@@ -75,12 +75,23 @@ export async function createNotification(type: NotificationType): Promise<string
   return docRef.id;
 }
 
+export interface NotificationsSnapshotMeta {
+  /**
+   * Firestore delivers a listener's first snapshot from local cache
+   * immediately (fromCache: true) - even brand new, empty, and with no
+   * emulator or backend reachable at all - then again once the server
+   * actually confirms it (fromCache: false). Callers should treat
+   * fromCache: true data as unconfirmed rather than "loaded".
+   */
+  fromCache: boolean;
+}
+
 /**
  * Subscribes to realtime updates on the notifications collection.
  * Returns an unsubscribe function.
  */
 export function subscribeToNotifications(
-  onData: (notifications: NotificationRecord[]) => void,
+  onData: (notifications: NotificationRecord[], meta: NotificationsSnapshotMeta) => void,
   onError: (error: Error) => void,
 ): Unsubscribe {
   return onSnapshot(
@@ -90,7 +101,7 @@ export function subscribeToNotifications(
         .map((docSnapshot) => toNotificationRecord(docSnapshot.id, docSnapshot.data()))
         .filter((notification): notification is NotificationRecord => notification !== null);
 
-      onData(notifications);
+      onData(notifications, { fromCache: snapshot.metadata.fromCache });
     },
     onError,
   );

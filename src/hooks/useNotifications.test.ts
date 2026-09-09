@@ -1,8 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationRecord } from '../types/notification';
+import type { NotificationsSnapshotMeta } from '../services/notificationService';
 
-type SubscribeCallback = (notifications: NotificationRecord[]) => void;
+type SubscribeCallback = (
+  notifications: NotificationRecord[],
+  meta: NotificationsSnapshotMeta,
+) => void;
 type ErrorCallback = (error: Error) => void;
 
 const subscribeMock = vi.fn<(onData: SubscribeCallback, onError: ErrorCallback) => () => void>();
@@ -29,13 +33,34 @@ beforeEach(() => {
   subscribeMock.mockReset();
   createNotificationMock.mockReset();
   markNotificationAsReadMock.mockReset();
-  subscribeMock.mockImplementation((onData: (notifications: NotificationRecord[]) => void) => {
-    onData([sampleNotification]);
+  subscribeMock.mockImplementation((onData) => {
+    onData([sampleNotification], { fromCache: false });
     return vi.fn();
   });
 });
 
 describe('useNotifications', () => {
+  it('does not clear loading until the subscription is confirmed by the server', () => {
+    let capturedOnData: SubscribeCallback | undefined;
+    subscribeMock.mockImplementation((onData) => {
+      capturedOnData = onData;
+      onData([], { fromCache: true });
+      return vi.fn();
+    });
+
+    const { result } = renderHook(() => useNotifications());
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.notifications).toEqual([]);
+
+    act(() => {
+      capturedOnData?.([sampleNotification], { fromCache: false });
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.notifications).toEqual([sampleNotification]);
+  });
+
   it('applies an optimistic read update immediately', async () => {
     markNotificationAsReadMock.mockResolvedValue(undefined);
     const { result } = renderHook(() => useNotifications());
@@ -126,8 +151,8 @@ describe('useNotifications', () => {
       read: false,
       createdAt: 2,
     };
-    subscribeMock.mockImplementation((onData: (notifications: NotificationRecord[]) => void) => {
-      onData([sampleNotification, otherNotification]);
+    subscribeMock.mockImplementation((onData) => {
+      onData([sampleNotification, otherNotification], { fromCache: false });
       return vi.fn();
     });
     markNotificationAsReadMock.mockResolvedValue(undefined);

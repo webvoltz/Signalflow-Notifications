@@ -7,7 +7,12 @@ interface FakeDocSnapshot {
   data: () => unknown;
 }
 
-type SnapshotCallback = (snapshot: { docs: FakeDocSnapshot[] }) => void;
+interface FakeQuerySnapshot {
+  docs: FakeDocSnapshot[];
+  metadata: { fromCache: boolean };
+}
+
+type SnapshotCallback = (snapshot: FakeQuerySnapshot) => void;
 
 const addDocMock = vi.fn<(collectionRef: unknown, data: unknown) => Promise<{ id: string }>>();
 const onSnapshotMock = vi.fn<(collectionRef: unknown, onNext: SnapshotCallback) => () => void>();
@@ -31,8 +36,8 @@ vi.mock('firebase/firestore', () => ({
   },
 }));
 
-function pushSnapshot(docs: FakeDocSnapshot[]): void {
-  latestSnapshotCallback?.({ docs });
+function pushSnapshot(docs: FakeDocSnapshot[], fromCache = false): void {
+  latestSnapshotCallback?.({ docs, metadata: { fromCache } });
 }
 
 beforeEach(() => {
@@ -40,7 +45,7 @@ beforeEach(() => {
   onSnapshotMock.mockReset();
   onSnapshotMock.mockImplementation((_collectionRef, onNext) => {
     latestSnapshotCallback = onNext;
-    onNext({ docs: [] });
+    onNext({ docs: [], metadata: { fromCache: false } });
     return vi.fn();
   });
 });
@@ -60,6 +65,19 @@ describe('App', () => {
     pushSnapshot([]);
 
     expect(await screen.findByRole('button', { name: /Send info/i })).toBeInTheDocument();
+  });
+
+  it('keeps showing the loading screen while only a cache-sourced snapshot has arrived', () => {
+    onSnapshotMock.mockImplementationOnce((_collectionRef, onNext) => {
+      latestSnapshotCallback = onNext;
+      onNext({ docs: [], metadata: { fromCache: true } });
+      return vi.fn();
+    });
+
+    render(<App />);
+
+    expect(screen.getByRole('status')).toHaveTextContent(/Connecting to Firestore/i);
+    expect(screen.queryByRole('button', { name: /Send info/i })).not.toBeInTheDocument();
   });
 
   it('shows the notifications header and a send button', () => {

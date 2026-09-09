@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationRecord } from '../types/notification';
+import type { NotificationsSnapshotMeta } from './notificationService';
 
 class FakeTimestamp {
   constructor(private readonly millis: number) {}
@@ -14,7 +15,12 @@ interface FakeDocSnapshot {
   data: () => unknown;
 }
 
-type SnapshotCallback = (snapshot: { docs: FakeDocSnapshot[] }) => void;
+interface FakeQuerySnapshot {
+  docs: FakeDocSnapshot[];
+  metadata: { fromCache: boolean };
+}
+
+type SnapshotCallback = (snapshot: FakeQuerySnapshot) => void;
 type ErrorCallback = (error: Error) => void;
 
 const addDocMock =
@@ -97,7 +103,8 @@ describe('createNotification', () => {
 
 describe('subscribeToNotifications', () => {
   it('maps snapshot documents into notification records and skips malformed ones', () => {
-    const onData = vi.fn<(notifications: NotificationRecord[]) => void>();
+    const onData =
+      vi.fn<(notifications: NotificationRecord[], meta: NotificationsSnapshotMeta) => void>();
     const onError = vi.fn<ErrorCallback>();
     onSnapshotMock.mockImplementation((_collectionRef, onNext) => {
       onNext({
@@ -125,6 +132,7 @@ describe('subscribeToNotifications', () => {
             data: () => ({ type: 'unknown-type', message: 'Bad' }),
           },
         ],
+        metadata: { fromCache: false },
       });
       return vi.fn();
     });
@@ -136,7 +144,7 @@ describe('subscribeToNotifications', () => {
     if (dataCall === undefined) {
       throw new Error('onData was not called');
     }
-    const [notifications] = dataCall;
+    const [notifications, meta] = dataCall;
 
     expect(notifications).toHaveLength(2);
     expect(notifications[0]).toEqual({
@@ -148,11 +156,32 @@ describe('subscribeToNotifications', () => {
     });
     expect(notifications[1]?.id).toBe('pending-1');
     expect(typeof notifications[1]?.createdAt).toBe('number');
+    expect(meta).toEqual({ fromCache: false });
     expect(onError).not.toHaveBeenCalled();
   });
 
+  it('reports fromCache: true for a snapshot not yet confirmed by the server', () => {
+    const onData =
+      vi.fn<(notifications: NotificationRecord[], meta: NotificationsSnapshotMeta) => void>();
+    const onError = vi.fn<ErrorCallback>();
+    onSnapshotMock.mockImplementation((_collectionRef, onNext) => {
+      onNext({ docs: [], metadata: { fromCache: true } });
+      return vi.fn();
+    });
+
+    subscribeToNotifications(onData, onError);
+
+    const dataCall = onData.mock.calls[0];
+    if (dataCall === undefined) {
+      throw new Error('onData was not called');
+    }
+    const meta: NotificationsSnapshotMeta = dataCall[1];
+    expect(meta.fromCache).toBe(true);
+  });
+
   it('forwards subscription errors', () => {
-    const onData = vi.fn<(notifications: NotificationRecord[]) => void>();
+    const onData =
+      vi.fn<(notifications: NotificationRecord[], meta: NotificationsSnapshotMeta) => void>();
     const onError = vi.fn<ErrorCallback>();
     const subscriptionError = new Error('unavailable');
     onSnapshotMock.mockImplementation((_collectionRef, _onNext, onSnapshotError) => {
