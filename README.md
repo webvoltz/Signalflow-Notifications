@@ -252,9 +252,12 @@ two packages, unrelated to this project's code, that only `skipLibCheck: true` c
 
 - **Emulator won't connect** - confirm `VITE_USE_FIRESTORE_EMULATOR=true` in `.env` and that
   `npm run emulators` is actually running (check `127.0.0.1:4000` for the Emulator UI).
+- **Blank page, or "Invalid application configuration."** - a missing or malformed `VITE_*`
+  value fails validation in `src/config/env.ts`. `main.tsx` catches this and renders a screen with
+  the fix; if you see a genuinely blank page instead, you're most likely missing `.env` entirely -
+  run `cp .env.example .env` and restart `npm run dev`.
 - **Env vars not taking effect** - Vite only reads `.env` at startup; restart `npm run dev` after
-  editing it. A missing/invalid `VITE_*` value throws `Invalid application configuration.` -
-  check `src/config/env.ts` for the exact fields required.
+  editing it.
 - **Firestore "permission denied" on write** - `firestore.rules` only accepts the exact document
   shape `notificationService.ts` sends, and updates may only flip `read` from `false` to `true`;
   anything else (including deletes) is denied by design.
