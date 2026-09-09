@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Notifications are readable by any client (this demo has no auth layer),
+    // but writes are constrained to the exact shape the app produces:
+    // - create: only the fields the service ever sends, with a valid type/message,
+    //   always starting unread, with a server-assigned timestamp.
+    // - update: only the `read` flag may change, and only false -> true.
+    // Everything else, including deletes, is denied by default.
+    match /notifications/{notificationId} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly(['type', 'message', 'read', 'createdAt'])
+        && request.resource.data.type in ['info', 'alert', 'message']
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 500
+        && request.resource.data.read == false
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && resource.data.read == false
+        && request.resource.data.read == true;
+
+      allow delete: if false;
+    }
+  }
+}
