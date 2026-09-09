@@ -35,6 +35,40 @@ product in its own right.
 - **Strict TypeScript** - no `any` anywhere, full `strict` compiler family, zero-warning ESLint.
 - Animations respect `prefers-reduced-motion` throughout.
 
+## 📸 Screenshots
+
+All captured from the app running locally against the Firestore emulator (`npm run dev` +
+`npm run emulators`) at the default responsive breakpoint.
+
+### Functionality
+
+|                                                                                             |                                                                                                    |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| ![Empty state](docs/screenshots/01-dashboard-loading-or-empty.png)                          | ![Dashboard with notifications](docs/screenshots/02-dashboard-with-notifications.png)              |
+| Empty state - no notifications yet, with a "Create your first notification" call to action. | Three unread notifications across all types, with a success toast stacked for each realtime write. |
+
+|                                                                                        |                                                                     |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| ![Mark as read](docs/screenshots/03-mark-as-read-toast.png)                            | ![Filtered to unread](docs/screenshots/06-filtered-unread.png)      |
+| Optimistic mark-as-read - the card updates instantly, with its own confirmation toast. | The status filter narrowed to "Unread", hiding the read card above. |
+
+|                                                                                                        |                                                                                          |
+| ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| ![Create modal, untouched](docs/screenshots/04-create-modal-untouched.png)                             | ![Create modal, validation error](docs/screenshots/05-create-modal-validation-error.png) |
+| The create-notification modal on open - no validation error until the user actually interacts with it. | Submitting with an empty message - inline validation, no silent failure.                 |
+
+### Error and recovery states
+
+|                                                                                                           |                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ![Loading splash](docs/screenshots/07-loading-splash.png)                                                 | ![Connection error](docs/screenshots/08-connection-error.png)                                                                                    |
+| The animated splash shown while waiting for the Firestore subscription's first server-confirmed snapshot. | `ConnectionErrorPanel` after a real subscription failure (invalid `VITE_FIREBASE_PROJECT_ID`), with a plain-language message and a Retry action. |
+
+![Configuration error](docs/screenshots/09-config-error.png)
+
+The full-page `ConfigErrorScreen` shown when `.env` is missing or fails zod validation in
+`src/config/env.ts` - before React ever mounts the real app, with the exact fix inline.
+
 ## 🧰 Tech stack
 
 | Technology                                    | Role                                               |
@@ -216,7 +250,7 @@ placeholder value in that mode.
 
 ## 🧪 Testing
 
-`npm test` runs the full suite (96 tests) with coverage thresholds enforced in `vite.config.ts`
+`npm test` runs the full suite (97 tests) with coverage thresholds enforced in `vite.config.ts`
 (currently 98.9% statements, 95.2% branches, 100% functions, 98.9% lines - above the 90/85/100/90
 floor):
 
