@@ -42,9 +42,12 @@ const App: FC = () => {
       </header>
 
       {error !== null && (
-        <p role="alert" className="app-error">
-          {error}
-        </p>
+        <div role="alert" className="app-error">
+          <span className="app-error-icon" aria-hidden="true">
+            ⚠️
+          </span>
+          <p className="app-error-text">{error}</p>
+        </div>
       )}
 
       <main className="notification-table">

@@ -5,6 +5,7 @@ import {
   subscribeToNotifications,
 } from '../services/notificationService';
 import type { NotificationRecord, NotificationType } from '../types/notification';
+import { humanizeFirestoreError } from '../utils/humanizeFirestoreError';
 
 export interface UseNotificationsResult {
   notifications: NotificationRecord[];
@@ -15,7 +16,9 @@ export interface UseNotificationsResult {
 }
 
 function toErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+  const message = error instanceof Error ? error.message : fallback;
+
+  return humanizeFirestoreError(message);
 }
 
 /**
@@ -44,7 +47,7 @@ export function useNotifications(): UseNotificationsResult {
         }
       },
       (subscriptionError) => {
-        setError(subscriptionError.message);
+        setError(humanizeFirestoreError(subscriptionError.message));
         setLoading(false);
       },
     );

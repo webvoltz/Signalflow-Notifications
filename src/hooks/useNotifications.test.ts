@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationRecord } from '../types/notification';
 import type { NotificationsSnapshotMeta } from '../services/notificationService';
+import { humanizeFirestoreError } from '../utils/humanizeFirestoreError';
 
 type SubscribeCallback = (
   notifications: NotificationRecord[],
@@ -91,7 +92,7 @@ describe('useNotifications', () => {
     });
 
     expect(result.current.notifications[0]?.read).toBe(false);
-    expect(result.current.error).toBe('permission-denied');
+    expect(result.current.error).toBe(humanizeFirestoreError('permission-denied'));
   });
 
   it('surfaces subscription errors and stops loading', async () => {
@@ -106,7 +107,7 @@ describe('useNotifications', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(result.current.error).toBe('unavailable');
+    expect(result.current.error).toBe(humanizeFirestoreError('unavailable'));
     expect(result.current.notifications).toEqual([]);
   });
 
